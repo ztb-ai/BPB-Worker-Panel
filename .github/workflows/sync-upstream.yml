@@ -1,0 +1,37 @@
+name: Upstream Sync
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 每天运行一次，0 点执行
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  sync_latest_from_upstream:
+    name: Sync latest commits from upstream repo
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork }}
+
+    steps:
+      # Step 1: 检出仓库
+      - name: Checkout target repo
+        uses: actions/checkout@v3
+
+      # Step 2: 同步上游更改
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          upstream_sync_repo: bia-pain-bache/BPB-Worker-Panel  # 上游仓库用户名/仓库名称
+          upstream_sync_branch: main                           # 上游仓库的分支
+          target_sync_branch: main                             # 本仓库中的目标分支
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 3: 检查同步状态
+      - name: Sync check
+        if: failure()
+        run: |
+          echo "[Error] 上游仓库 workflow 文件更改，GitHub 自动暂停更新，请手动同步。"
+          exit 1
